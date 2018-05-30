@@ -32,23 +32,31 @@ public class PhysicalDataTask extends CommonDataTask {
 					getSqliteConn().insertBObject(card);
 				}
 			}
+			// 这里修改了ctp的采集方法，不通过ptp采集，改为通过网元采集。
+			List<CTP> ctpNeList = service.retrieveAllCtps(this.getTask().getObjectName());
+			nbilog.info("PhysicalDataTask.ctpNe size = " + ctpNeList != null?ctpNeList.size():0);
+			if (ctpNeList != null && ctpNeList.size() > 0) {
+				for (CTP ctp : ctpNeList) {
+                    getSqliteConn().insertBObject(ctp);
+				}
+			}
 
 			if (ptpList != null && ptpList.size() > 0) {
 				for (PTP ptp : ptpList) {
                     getSqliteConn().insertBObject(ptp);
 				}
-				for (PTP ptp : ptpList) {
-					try {
-						List<CTP> ctpList = service.retrieveAllCtps(ptp.getDn());
-						if (ctpList != null && ctpList.size() > 0) {
-							for (CTP ctp : ctpList) {
-                                getSqliteConn().insertBObject(ctp);
-							}
-						}
-					} catch (Exception e) {
-						nbilog.error("PhysicalDataTask.excute Exception:", e);
-					}
-				}
+//				for (PTP ptp : ptpList) {
+//					try {
+//						List<CTP> ctpList = service.retrieveAllCtps(ptp.getDn());
+//						if (ctpList != null && ctpList.size() > 0) {
+//							for (CTP ctp : ctpList) {
+//                                getSqliteConn().insertBObject(ctp);
+//							}
+//						}
+//					} catch (Exception e) {
+//						nbilog.error("PhysicalDataTask.excute Exception:", e);
+//					}
+//				}
 			}
 			// List<CrossConnect> ipccList = service.retrieveAllCrossConnects(this.getTask().getObjectName());
 			// if (ipccList != null) {
