@@ -16,6 +16,12 @@ import com.alcatelsbell.nms.valueobject.BObject;
 public class PhysicalDataTask extends CommonDataTask {
 	public Vector<BObject> excute() {
 		try {
+			// OTN网管沿用老方法采集ctp，PTN网管改为通过网元采集ctp。
+			String mod = "OTN";
+			if ("ZJ-ZTE-1-PTN".equals(service.getEmsName())) {
+				mod = "PTN";
+			}
+			
 			List<EquipmentHolder> holderList = new ArrayList<EquipmentHolder>();
 			List<Equipment> cardList = new ArrayList<Equipment>();
 			service.retrieveAllEquipmentAndHolders(getTask().getObjectName(), holderList, cardList);
@@ -32,31 +38,44 @@ public class PhysicalDataTask extends CommonDataTask {
 					getSqliteConn().insertBObject(card);
 				}
 			}
-			// 这里修改了ctp的采集方法，不通过ptp采集，改为通过网元采集。
-			List<CTP> ctpNeList = service.retrieveAllCtps(this.getTask().getObjectName());
-			nbilog.info("PhysicalDataTask.ctpNe size = " + ctpNeList != null?ctpNeList.size():0);
-			if (ctpNeList != null && ctpNeList.size() > 0) {
-				for (CTP ctp : ctpNeList) {
-                    getSqliteConn().insertBObject(ctp);
+			
+			if ("PTN".equals(mod)) {
+				// 这里修改了ctp的采集方法，不通过ptp采集，改为通过网元采集。
+				List<CTP> ctpNeList = service.retrieveAllCtps(this.getTask().getObjectName());
+				String size = String.valueOf(ctpNeList != null?ctpNeList.size():0);
+				nbilog.info("PhysicalDataTask.ctpNe size = " + size);
+				if (ctpNeList != null && ctpNeList.size() > 0) {
+					for (CTP ctp : ctpNeList) {
+	                    getSqliteConn().insertBObject(ctp);
+					}
 				}
 			}
 
+			if ("OTN".equals(mod)) {
+				String size = String.valueOf(ptpList != null?ptpList.size():0);
+				nbilog.info("PhysicalDataTask.ptpNe size = " + size);
+			}
+			
 			if (ptpList != null && ptpList.size() > 0) {
 				for (PTP ptp : ptpList) {
                     getSqliteConn().insertBObject(ptp);
 				}
-//				for (PTP ptp : ptpList) {
-//					try {
-//						List<CTP> ctpList = service.retrieveAllCtps(ptp.getDn());
-//						if (ctpList != null && ctpList.size() > 0) {
-//							for (CTP ctp : ctpList) {
-//                                getSqliteConn().insertBObject(ctp);
-//							}
-//						}
-//					} catch (Exception e) {
-//						nbilog.error("PhysicalDataTask.excute Exception:", e);
-//					}
-//				}
+				
+				if ("OTN".equals(mod)) {
+					for (PTP ptp : ptpList) {
+						try {
+							List<CTP> ctpList = service.retrieveAllCtps(ptp.getDn());
+							if (ctpList != null && ctpList.size() > 0) {
+								for (CTP ctp : ctpList) {
+	                                getSqliteConn().insertBObject(ctp);
+								}
+							}
+						} catch (Exception e) {
+							nbilog.error("PhysicalDataTask.excute Exception:", e);
+						}
+					}
+				}
+				
 			}
 			// List<CrossConnect> ipccList = service.retrieveAllCrossConnects(this.getTask().getObjectName());
 			// if (ipccList != null) {
