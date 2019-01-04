@@ -67,6 +67,20 @@ public class CorbaService extends CorbaSbiService {
 		return true;
 
 	}
+	
+	public boolean initFake() {
+		if (!initlog) {
+			initLog();
+		}
+
+		sbilog.info("corbaService init fake");
+		setConnectState(true);
+		sbilog.info("collect data as debug after init");
+
+		// DayMigrationJob job=new DayMigrationJob();
+		// job.execute(null);
+		return true;
+	}
 
 	public void linkFailure() {
 		try {
