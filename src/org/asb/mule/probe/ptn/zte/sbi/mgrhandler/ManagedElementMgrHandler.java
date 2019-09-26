@@ -9,6 +9,7 @@ import managedElement.ManagedElement_THolder;
 import managedElementManager.ManagedElementMgr_I;
 import mstpcommon.FTPBindingIterator_IHolder;
 import mstpcommon.FTPBindingList_THolder;
+import mstpcommon.FTPBinding_T;
 import mstpcommon.MSTPCommon_I;
 import subnetworkConnection.CCIterator_IHolder;
 import subnetworkConnection.CrossConnectList_THolder;
@@ -277,7 +278,7 @@ public class ManagedElementMgrHandler {
 	 *            mgr from which managed elements retrieved.
 	 * @return ManagedElement_T[]
 	 */
-	public TPData_T[] retrieveAllFtpPtpsByNe(MSTPCommon_I mstpCom, NameAndStringValue_T[] ne) throws globaldefs.ProcessingFailureException {
+	public FTPBinding_T[] retrieveAllFtpPtpsByNe(MSTPCommon_I mstpCom, NameAndStringValue_T[] ne) throws globaldefs.ProcessingFailureException {
 		int how_many = 1000;
 		
 		java.util.Vector mes = new java.util.Vector();
@@ -307,7 +308,7 @@ public class ManagedElementMgrHandler {
 			}
 		}
 		
-		TPData_T[] result = new TPData_T[mes.size()];
+		FTPBinding_T[] result = new FTPBinding_T[mes.size()];
 		mes.copyInto(result);
 
 		return result;

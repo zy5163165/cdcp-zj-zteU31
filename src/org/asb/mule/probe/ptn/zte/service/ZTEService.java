@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import managedElement.ManagedElement_T;
+import mstpcommon.FTPBinding_T;
 
 import org.asb.mule.probe.framework.entity.CTP;
 import org.asb.mule.probe.framework.entity.CrossConnect;
@@ -568,12 +569,12 @@ public class ZTEService implements NbiService {
 
 	@Override
 	public List<R_FTP_PTP> retrieveAllPTPsByFtp(String ftpName) {
-		sbilog.info("retrieveAllPTPsByFtpFromPw : " + ftpName);
+		sbilog.info("retrieveAllPTPsByFtp : " + ftpName);
 		
-		TPData_T[] vendorTpList = null;
 		List<R_FTP_PTP> ptpList = new ArrayList();
 		
 		if (ftpName.contains("slot=255")) {
+			TPData_T[] vendorTpList = null;
 			try {
 				NameAndStringValue_T[] dn = VendorDNFactory.createFtpDN(ftpName);
 				vendorTpList = ManagedElementMgrHandler.instance().retrieveAllPtpsByFtp(corbaService.getNmsSession().getMSTPCommonMgr(), dn);
@@ -587,8 +588,9 @@ public class ZTEService implements NbiService {
 				ptp.setTag1("ForPw");
 				ptpList.add(ptp);
 			}
-			sbilog.info("retrieveAllPTPsByFtpFromPw.size : " + ptpList.size());
+//			sbilog.info("retrieveAllPTPsByFtpFromPw.size : " + ptpList.size());
 		} else {
+			FTPBinding_T[] vendorTpList = null;
 			try {
 				NameAndStringValue_T[] dn = VendorDNFactory.createCommonDN(ftpName);
 				vendorTpList = ManagedElementMgrHandler.instance().retrieveAllFtpPtpsByNe(corbaService.getNmsSession().getMSTPCommonMgr(), dn);
@@ -598,11 +600,14 @@ public class ZTEService implements NbiService {
 				errorlog.error("retrieveAllPTPsByNE CORBA.SystemException: " + e.getMessage(), e);
 			}
 			if (vendorTpList != null) {
-				for (TPData_T vptp : vendorTpList) {
+				for (FTPBinding_T vptp : vendorTpList) {
 					try {
-						R_FTP_PTP ptp = PtpMapper.instance().convertPtpFtpRelation(vptp, ftpName);
-						ptp.setTag1("ForPtp");
-						ptpList.add(ptp);
+						for (TPData_T tpData : vptp.ftpMembers) {
+							ftpName = PtpMapper.instance().nv2dn(vptp.ftpName);
+							R_FTP_PTP ptp = PtpMapper.instance().convertPtpFtpRelation(tpData, ftpName);
+							ptp.setTag1("ForPtp");
+							ptpList.add(ptp);
+						}
 					} catch (Exception e) {
 						errorlog.error("retrieveAllPTPsByNE convertException: ", e);
 					}
