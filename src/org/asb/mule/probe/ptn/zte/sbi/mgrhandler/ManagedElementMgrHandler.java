@@ -7,6 +7,8 @@ import managedElement.ManagedElementList_THolder;
 import managedElement.ManagedElement_T;
 import managedElement.ManagedElement_THolder;
 import managedElementManager.ManagedElementMgr_I;
+import mstpcommon.FTPBindingIterator_IHolder;
+import mstpcommon.FTPBindingList_THolder;
 import mstpcommon.MSTPCommon_I;
 import subnetworkConnection.CCIterator_IHolder;
 import subnetworkConnection.CrossConnectList_THolder;
@@ -262,6 +264,49 @@ public class ManagedElementMgrHandler {
 			mes.addElement(tpList.value[i]);
 		}
 
+		TPData_T[] result = new TPData_T[mes.size()];
+		mes.copyInto(result);
+
+		return result;
+	}
+	
+	/**
+	 * Retrieve all referenced tps using the given mgr.
+	 * 
+	 * @param mgr
+	 *            mgr from which managed elements retrieved.
+	 * @return ManagedElement_T[]
+	 */
+	public TPData_T[] retrieveAllFtpPtpsByNe(MSTPCommon_I mstpCom, NameAndStringValue_T[] ne) throws globaldefs.ProcessingFailureException {
+		int how_many = 1000;
+		
+		java.util.Vector mes = new java.util.Vector();
+		FTPBindingList_THolder ftpList = new FTPBindingList_THolder();
+		FTPBindingIterator_IHolder ftpItList = new FTPBindingIterator_IHolder();
+
+		mstpCom.getAllFTPMembers(ne, how_many, ftpList, ftpItList);
+		
+		for (int i = 0; i < ftpList.value.length; i++) {
+			mes.addElement(ftpList.value[i]);
+		}
+
+		if (ftpItList.value != null) {
+			boolean hasMore;
+			do {
+				hasMore = ftpItList.value.next_n(how_many, ftpList);
+
+				for (int i = 0; i < ftpList.value.length; i++) {
+					mes.addElement(ftpList.value[i]);
+				}
+			} while (hasMore);
+
+			try {
+				ftpItList.value.destroy();
+			} catch (Throwable ex) {
+
+			}
+		}
+		
 		TPData_T[] result = new TPData_T[mes.size()];
 		mes.copyInto(result);
 

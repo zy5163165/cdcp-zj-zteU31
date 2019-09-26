@@ -8,6 +8,7 @@ import org.asb.mule.probe.framework.entity.CTP;
 import org.asb.mule.probe.framework.entity.Equipment;
 import org.asb.mule.probe.framework.entity.EquipmentHolder;
 import org.asb.mule.probe.framework.entity.PTP;
+import org.asb.mule.probe.framework.entity.R_FTP_PTP;
 import org.asb.mule.probe.framework.nbi.task.CommonDataTask;
 
 
@@ -77,6 +78,22 @@ public class PhysicalDataTask extends CommonDataTask {
 				}
 				
 			}
+			
+			if ("PTN".equals(mod)) {
+				List<R_FTP_PTP> ftpList = service.retrieveAllPTPsByFtp(this.getTask().getObjectName());
+				nbilog.info("PhysicalDataTask.ftpList size = " + ftpList.size());
+				if (ftpList != null && ftpList.size() > 0) {
+					for (R_FTP_PTP ftp : ftpList) {
+						try {
+							getSqliteConn().insertBObject(ftp);
+						} catch (Exception e) {
+							nbilog.error("PhysicalDataTask.ftpList.excute Exception:", e);
+						}
+					}
+				}
+			}
+			
+			
 			// List<CrossConnect> ipccList = service.retrieveAllCrossConnects(this.getTask().getObjectName());
 			// if (ipccList != null) {
 			// for (CrossConnect ipcc : ipccList) {

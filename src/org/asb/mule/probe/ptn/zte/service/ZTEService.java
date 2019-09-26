@@ -568,37 +568,48 @@ public class ZTEService implements NbiService {
 
 	@Override
 	public List<R_FTP_PTP> retrieveAllPTPsByFtp(String ftpName) {
-		// TODO Auto-generated method stub
-		sbilog.info("retrieveAllPTPsByFtp : " + ftpName);
+		sbilog.info("retrieveAllPTPsByFtpFromPw : " + ftpName);
 		
 		TPData_T[] vendorTpList = null;
 		List<R_FTP_PTP> ptpList = new ArrayList();
-		try {
-
-			// String[] ftpDn = ftpName.split(Constant.dnSplit);
-			NameAndStringValue_T[] dn = VendorDNFactory.createFtpDN(ftpName);
-			vendorTpList = ManagedElementMgrHandler.instance().retrieveAllPtpsByFtp(corbaService.getNmsSession().getMSTPCommonMgr(), dn);
-		} catch (ProcessingFailureException e) {
-			errorlog.error("retrieveAllPTPsByFtp ProcessingFailureException: " + CodeTool.isoToGbk(e.errorReason), e);
-		} catch (org.omg.CORBA.SystemException e) {
-			errorlog.error("retrieveAllPTPsByFtp CORBA.SystemException: " + e.getMessage(), e);
+		
+		if (ftpName.contains("slot=255")) {
+			try {
+				NameAndStringValue_T[] dn = VendorDNFactory.createFtpDN(ftpName);
+				vendorTpList = ManagedElementMgrHandler.instance().retrieveAllPtpsByFtp(corbaService.getNmsSession().getMSTPCommonMgr(), dn);
+			} catch (ProcessingFailureException e) {
+				errorlog.error("retrieveAllPTPsByFtpFromPw ProcessingFailureException: " + CodeTool.isoToGbk(e.errorReason), e);
+			} catch (org.omg.CORBA.SystemException e) {
+				errorlog.error("retrieveAllPTPsByFtpFromPw CORBA.SystemException: " + e.getMessage(), e);
+			}
+			if (vendorTpList != null) {
+				R_FTP_PTP ptp = PtpMapper.instance().convertPtpFtpRelation(vendorTpList[0], ftpName);
+				ptp.setTag1("ForPw");
+				ptpList.add(ptp);
+			}
+			sbilog.info("retrieveAllPTPsByFtpFromPw.size : " + ptpList.size());
+		} else {
+			try {
+				NameAndStringValue_T[] dn = VendorDNFactory.createCommonDN(ftpName);
+				vendorTpList = ManagedElementMgrHandler.instance().retrieveAllFtpPtpsByNe(corbaService.getNmsSession().getMSTPCommonMgr(), dn);
+			} catch (ProcessingFailureException e) {
+				errorlog.error("retrieveAllPTPsByNE ProcessingFailureException: " + CodeTool.isoToGbk(e.errorReason), e);
+			} catch (org.omg.CORBA.SystemException e) {
+				errorlog.error("retrieveAllPTPsByNE CORBA.SystemException: " + e.getMessage(), e);
+			}
+			if (vendorTpList != null) {
+				for (TPData_T vptp : vendorTpList) {
+					try {
+						R_FTP_PTP ptp = PtpMapper.instance().convertPtpFtpRelation(vptp, ftpName);
+						ptp.setTag1("ForPtp");
+						ptpList.add(ptp);
+					} catch (Exception e) {
+						errorlog.error("retrieveAllPTPsByNE convertException: ", e);
+					}
+				}
+			}
+			sbilog.info("retrieveAllPTPsByNE.size : " + ptpList.size());
 		}
-		if (vendorTpList != null) {
-			
-			R_FTP_PTP ptp = PtpMapper.instance().convertPtpFtpRelation(vendorTpList[0], ftpName);
-			ptpList.add(ptp);
-			
-//			for (TPData_T vptp : vendorTpList) {
-//				try {
-//					R_FTP_PTP ptp = PtpMapper.instance().convertPtpFtpRelation(vptp, ftpName);
-//					ptpList.add(ptp);
-//				} catch (Exception e) {
-//					errorlog.error("retrieveAllPTPsByFtp convertException: ", e);
-//				}
-//			}
-			
-		}
-		sbilog.info("retrieveAllPTPsByFtp.size : " + ptpList.size());
 		
 		return ptpList;
 	}
