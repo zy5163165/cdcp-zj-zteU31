@@ -127,6 +127,7 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
 //            return;
 //        }
         String emsDn = service.getEmsName();
+        nbilog.info("中兴SPN网管采集：DayMigrationJob4SPN");
         nbilog.info("Start for task : " + serial);
         nbilog.info("Start to migrate all data from ems: " + emsDn);
 
@@ -150,8 +151,8 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
         	String ftpPath = map.get("ftpPath") + date + "/";//"ZJ/CS/FH/ZJ-FH-1-OTN/CM/" + date + "/";
         	String user = map.get("user");//"admin";
         	String passwd = map.get("passwd");//"vislecaina@123";
-        	String amStamp = map.get("amStamp") != null ? map.get("amStamp") : "12";
-        	String pmStamp = map.get("pmStamp") != null ? map.get("pmStamp") : "00";
+        	String amStamp = map.get("amStamp") != null ? map.get("amStamp") : "00";
+        	String pmStamp = map.get("pmStamp") != null ? map.get("pmStamp") : "12";
         	
         	String gzPath = "/home/emsptn/ftpDownload/gz/" + emsDn + "/" + date + "/"; // gz压缩包路径
         	String xmlPath = "/home/emsptn/ftpDownload/xml/" + emsDn + "/" + date; // xml文件路径
@@ -554,21 +555,52 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
 			// "D:\\xml\\CM-OTN-CRD-A1-V1.0.0-20180705120024.xml"
 			for (String key : map.keySet()) {
 //				String filePath = path + "CM-OTN-" + key + "-A1-V1.0.0-20180705120024.xml"; // 写死的拼装文件名
-				String fileName = getFileName(key, path); // xml文件名模糊匹配
-				if (!Detect.notEmpty(fileName)) {
-					nbilog.error("实体："+key+"的xml文件未找到，请检查！");
-					continue;
+				try {
+					String fileName = getFileName(key, path); // xml文件名模糊匹配
+					if (!Detect.notEmpty(fileName)) {
+						if ("MGP".equals(key)) {
+							nbilog.error("MGP替换为FEG");
+							fileName = getFileName("FEG", path);
+						}
+						if ("MGB".equals(key)) {
+							nbilog.error("MGB替换为FGB");
+							fileName = getFileName("FGB", path);
+						}
+						if ("MCL".equals(key)) {
+							nbilog.error("MCL替换为FEC");
+							fileName = getFileName("FEC", path);
+						}
+						if ("MCS".equals(key)) {
+							nbilog.error("MCS替换为FES");
+							fileName = getFileName("FES", path);
+						}
+						if ("MCP".equals(key)) {
+							nbilog.error("MCP替换为FCP");
+							fileName = getFileName("FCP", path);
+						}
+						if ("MCB".equals(key)) {
+							nbilog.error("MCB替换为FCB");
+							fileName = getFileName("FCB", path);
+						}
+					}
+					if (!Detect.notEmpty(fileName)) {
+						nbilog.error("实体："+key+"的xml文件未找到，请检查！");
+						continue;
+					}
+					String filePath = path + fileName;
+					
+					File inputXml = new File(filePath);
+					SAXReader saxReader = new SAXReader();
+					Document document = saxReader.read(inputXml);
+					List<BObject> objs = getObject(document, map.get(key).getClass());
+					for (BObject obj : objs) {
+						sqliteConn.insertBObject(obj);
+					}
+					sqliteConn.waitingForInsertBObject();
+				} catch (Exception e) {
+					nbilog.error(key+"解析报错："+e, e);
+					e.printStackTrace();
 				}
-				String filePath = path + fileName;
-				
-				File inputXml = new File(filePath);
-				SAXReader saxReader = new SAXReader();
-				Document document = saxReader.read(inputXml);
-				List<BObject> objs = getObject(document, map.get(key).getClass());
-				for (BObject obj : objs) {
-					sqliteConn.insertBObject(obj);
-				}
-				sqliteConn.waitingForInsertBObject();
 			}
 			
 			sqliteConn.waitingForInsertBObject();
