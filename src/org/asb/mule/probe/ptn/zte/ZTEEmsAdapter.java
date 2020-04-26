@@ -1,18 +1,16 @@
 package org.asb.mule.probe.ptn.zte;
 
-import java.util.List;
-
-import com.alcatelsbell.cdcp.nodefx.*;
-import com.alcatelsbell.nms.valueobject.sys.Ems;
-
-import org.asb.mule.probe.framework.entity.DeviceInfo;
 import org.asb.mule.probe.framework.service.CorbaSbiService;
 import org.asb.mule.probe.framework.service.NbiService;
 import org.asb.mule.probe.ptn.zte.nbi.job.DayMigrationJob;
 import org.asb.mule.probe.ptn.zte.nbi.job.DayMigrationJob4PTN;
+import org.asb.mule.probe.ptn.zte.nbi.job.DayMigrationJob4SPN;
 import org.asb.mule.probe.ptn.zte.nbi.job.DeviceJob;
 import org.asb.mule.probe.ptn.zte.sbi.service.CorbaService;
 import org.asb.mule.probe.ptn.zte.service.ZTEService;
+
+import com.alcatelsbell.cdcp.nodefx.CorbaEmsAdapterTemplate;
+import com.alcatelsbell.nms.valueobject.sys.Ems;
 
 /**
  * Author: Ronnie.Chen
@@ -32,25 +30,35 @@ public class ZTEEmsAdapter extends CorbaEmsAdapterTemplate {
     public Object doSyncEms(NbiService nbiService, Ems ems, String _serial) {
         logger.info("doSyncEms:"+ems.getDn());
         ZTEService zteService = (ZTEService)nbiService;
-                if (ems.getTag1() == null) ems.setTag1("PTN");
-                if (ems.getTag1().equals("SDH") || ems.getTag1().equals("OTN") || ems.getTag1().equals("WDM") ||  ems.getTag1().equals("DWDM")) {
-                    DayMigrationJob  job = new DayMigrationJob ();
+		if (ems.getTag1() == null)
+			ems.setTag1("PTN");
+		if (ems.getTag1().equals("SDH") || ems.getTag1().equals("OTN") || ems.getTag1().equals("WDM")
+				|| ems.getTag1().equals("DWDM")) {
+			DayMigrationJob job = new DayMigrationJob();
 
-                    job.setService(zteService);
-                    job.setSerial(_serial);
-                    job.execute();
-                }
-                else {
-                   logger.error("ZTE with PTN ems? ----------"+ems.getDn());
+			job.setService(zteService);
+			job.setSerial(_serial);
+			job.execute();
+		}
+		// omc新接口 SPN
+        else if (ems.getTag1().equals("NewSDH") || ems.getTag1().equals("NewOTN")
+       		 || ems.getTag1().equals("NewPTN")|| ems.getTag1().equals("NewSPN")) {
+        	DayMigrationJob4SPN job = new DayMigrationJob4SPN();
+        	job.setService(zteService);
+        	job.setSerial(_serial);
+        	job.execute();
+        }
+		else {
+			logger.error("ZTE with PTN ems? ----------" + ems.getDn());
 
-                    DayMigrationJob4PTN job = new DayMigrationJob4PTN ();
+			DayMigrationJob4PTN job = new DayMigrationJob4PTN();
 
-                    job.setService(zteService);
-                    job.setSerial(_serial);
-                    job.execute();
-                }
+			job.setService(zteService);
+			job.setSerial(_serial);
+			job.execute();
+		}
 
-                return null;
+		return null;
     }
 
     @Override
