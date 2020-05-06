@@ -216,7 +216,7 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
         // message
         nbilog.info("Uploading file...");
         try {
-            FtpInfo ftpInfo = FtpUtil.uploadFile("SDH", "FH", emsDn, new File(dbName));
+            FtpInfo ftpInfo = FtpUtil.uploadFile("SPN", "ZTE", emsDn, new File(dbName));
             ftpInfo.getAttributes().put("logical",""+logical);
             nbilog.info("Uploading file to :"+ftpInfo);
             if (eds != null) {
