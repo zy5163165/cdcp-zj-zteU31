@@ -17,7 +17,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -95,6 +97,11 @@ import com.alcatelsbell.nms.db.components.service.JPASupport;
 import com.alcatelsbell.nms.db.components.service.JPAUtil;
 import com.alcatelsbell.nms.util.SysProperty;
 import com.alcatelsbell.nms.valueobject.BObject;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.ChannelSftp.LsEntry;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 
 /**
  * 中兴SPN，OMC接口
@@ -151,6 +158,8 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
         	String ftpPath = map.get("ftpPath") + date + "/";//"ZJ/CS/FH/ZJ-FH-1-OTN/CM/" + date + "/";
         	String user = map.get("user");//"admin";
         	String passwd = map.get("passwd");//"vislecaina@123";
+        	String port = map.get("port");
+        	String ftpType = map.get("ftpType") != null ? map.get("ftpType") : "FTP";
         	String amStamp = map.get("amStamp") != null ? map.get("amStamp") : "00";
         	String pmStamp = map.get("pmStamp") != null ? map.get("pmStamp") : "12";
         	
@@ -173,6 +182,8 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
         	nbilog.info("ftpPath: " + ftpPath);
         	nbilog.info("user: " + user);
         	nbilog.info("passwd: " + passwd);
+        	nbilog.info("port: " + port);
+        	nbilog.info("ftpType: " + ftpType);
         	nbilog.info("gzPath: " + gzPath);
         	nbilog.info("xmlPath: " + xmlPath);
         	nbilog.info("timeStamp: " + timeStamp);
@@ -181,7 +192,14 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
         	clearPath(xmlPath, timeStamp);
         	
         	nbilog.info("downloadFromFtp : start...");
-        	downloadFromFtp(ipAddress, user, passwd, ftpPath, gzPath, timeStamp); // 从ftp下载压缩包
+        	// downloadFromFtp listFileNames
+        	if ("SFTP".equalsIgnoreCase(ftpType)) {
+        		nbilog.info("SSSftpDownload!!");
+        		listFileNames(ipAddress, user, passwd, port, ftpPath, gzPath, timeStamp); // 从sftp下载压缩包
+        	} else {
+        		nbilog.info("ftpDownload!");
+        		downloadFromFtp(ipAddress, user, passwd, port, ftpPath, gzPath, timeStamp); // 从ftp下载压缩包
+        	}
         	
         	nbilog.info("decompressionGz : start...");
         	File file = new File(gzPath);
@@ -248,9 +266,79 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
 
     }
     
-	private void downloadFromFtp(String ipAddress, String user, String passwd, String ftpPath, String gzPath, String timeStamp) {
+    private void listFileNames(String ipAddress, String user, String passwd, String portString, String ftpPath, String gzPath, String timeStamp) {
+    	int port = 21;
+		if (Detect.notEmpty(portString)) {
+			port = Integer.valueOf(portString);
+		}
+        ChannelSftp sftp = null;
+        Channel channel = null;
+        Session sshSession = null;
+        try {
+            JSch jsch = new JSch();
+            jsch.getSession(user, ipAddress, port);
+            sshSession = jsch.getSession(user, ipAddress, port);
+            sshSession.setPassword(passwd);
+            Properties sshConfig = new Properties();
+            sshConfig.put("StrictHostKeyChecking", "no");
+            sshSession.setConfig(sshConfig);
+            sshSession.connect();
+            nbilog.info("Session connected!");
+            channel = sshSession.openChannel("sftp");
+            channel.connect();
+            nbilog.info("Channel connected!");
+            sftp = (ChannelSftp) channel;
+            
+            Vector<?> vector = sftp.ls(ftpPath);
+            sftp.cd(ftpPath);
+            Iterator it = vector.iterator(); 
+			while (it.hasNext()) {
+				String fileName = ((LsEntry) it.next()).getFilename();
+				if (".".equals(fileName) || "..".equals(fileName)) {
+					continue;
+				}
+				if(fileName.indexOf(timeStamp)>0) {
+					nbilog.info(fileName + "  ftpDownload下载xml成功");
+					File localFile = new File(gzPath + fileName);
+					OutputStream ios = new FileOutputStream(localFile);
+					sftp.get(fileName, ios);
+					ios.close();
+				}
+			}
+        } catch (Exception e) {
+        	nbilog.error(e, e);
+            e.printStackTrace();
+        } finally {
+            closeChannel(sftp);
+            closeChannel(channel);
+            closeSession(sshSession);
+        }
+    }
+
+    private static void closeChannel(Channel channel) {
+        if (channel != null) {
+            if (channel.isConnected()) {
+                channel.disconnect();
+            }
+        }
+    }
+
+    private static void closeSession(Session session) {
+        if (session != null) {
+            if (session.isConnected()) {
+                session.disconnect();
+            }
+        }
+    }
+
+    
+    
+	private void downloadFromFtp(String ipAddress, String user, String passwd, String portString, String ftpPath, String gzPath, String timeStamp) {
 		// ftp服务器登录凭证
 		int port = 21;
+		if (Detect.notEmpty(portString)) {
+			port = Integer.valueOf(portString);
+		}
 		FTPClient ftp = null;
 		try {
 			// ftp的数据下载
