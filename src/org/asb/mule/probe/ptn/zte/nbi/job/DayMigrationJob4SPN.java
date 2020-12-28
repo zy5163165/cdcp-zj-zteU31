@@ -146,7 +146,7 @@ public class DayMigrationJob4SPN  extends MigrateCommonJob implements CommandBea
         nbilog.info("db: " + dbName);
         try {
 //          String date = StringUtils.substringBetween(serial, "@", "-");
-        	String date = new SimpleDateFormat("YYYYMMdd").format(System.currentTimeMillis());
+        	String date = new SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis());
         	
         	nbilog.info("emsdn: " + emsDn);
 //        	Ems ems = (Ems) JpaServerUtil.getInstance().findObjectByDN(Ems.class, emsDn);
